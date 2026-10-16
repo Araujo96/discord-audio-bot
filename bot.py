@@ -10,7 +10,7 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-ADMIN_ID = int(os.getenv("ADMIN_ID"))
+ADMIN_ID = int(os.getenv("ADMIN_ID", "0"))
 SENHA = os.getenv("SENHA")
 
 ARQUIVO_AUDIO = "audio.mp3"
@@ -27,8 +27,6 @@ intents.message_content = True
 intents.voice_states = True
 
 bot = discord.Client(intents=intents)
-
-usuarios_em_cadastro = set()
 
 
 def carregar_amigos():
@@ -96,84 +94,94 @@ async def on_message(message):
 
     autor_id = message.author.id
 
-    if autor_id in usuarios_em_cadastro:
-        return
 
+    if autor_id == ADMIN_ID:
 
-    if autor_id == ADMIN_ID and message.content == SENHA:
-        canal = message.channel
+        conteudo = message.content.strip()
+        partes = conteudo.split()
 
-        usuarios_em_cadastro.add(autor_id)
+        if len(partes) > 0 and partes[0] == SENHA:
 
-        try:
-            await canal.send(
-                "Informe o novo ID do amigo ou digite "
-                "`cancelar` para abortar."
-            )
-
-            def verificar(m):
-                return (
-                    m.author.id == autor_id
-                    and m.channel.id == canal.id
-                    and not m.author.bot
-                )
-
-            try:
-                resposta = await bot.wait_for(
-                    "message",
-                    check=verificar,
-                    timeout=60
-                )
-
-            except asyncio.TimeoutError:
-                await canal.send("Tempo esgotado. Cadastro cancelado.")
-                return
-
-            texto = resposta.content.strip()
-
-            if texto.lower() == "cancelar":
-                await canal.send("Operação cancelada.")
-                return
-
-            if not texto.isascii() or not texto.isdigit():
-                await canal.send(
-                    "ID inválido! O ID deve conter apenas números."
+            if len(partes) != 3:
+                await message.channel.send(
+                    f"Uso:\n"
+                    f"`{SENHA} add <id>`\n"
+                    f"`{SENHA} remove <id>`"
                 )
                 return
 
-            novo_id = int(texto)
+            senha_digitada = partes[0]
+            acao = partes[1].lower()
+            texto_id = partes[2]
 
-            if novo_id <= 0:
-                await canal.send("ID inválido.")
-                return
-
-            if novo_id in ID_DO_AMIGO:
-                await canal.send("Esse ID já está incluso.")
-                return
-
-            ID_DO_AMIGO.append(novo_id)
-
-            try:
-                salvar_amigos(ID_DO_AMIGO)
-
-            except OSError as erro:
-                ID_DO_AMIGO.remove(novo_id)
-                print(f"Erro ao salvar JSON: {erro}")
-                await canal.send(
-                    "Erro ao salvar o ID. Tente novamente."
+            if not texto_id.isdigit():
+                await message.channel.send(
+                    "O ID deve conter apenas números."
                 )
                 return
 
-            await canal.send(
-                f"Amigo adicionado com sucesso! ID: `{novo_id}`"
-            )
+            id_usuario = int(texto_id)
 
-            print(f"Novo id adicionado: {novo_id}")
+            if acao == "add":
 
-        finally:
-            usuarios_em_cadastro.discard(autor_id)
+                if id_usuario in ID_DO_AMIGO:
+                    await message.channel.send(
+                        "Esse ID já está cadastrado."
+                    )
+                    return
 
-        return
+                ID_DO_AMIGO.append(id_usuario)
+
+                try:
+                    salvar_amigos(ID_DO_AMIGO)
+                except OSError as erro:
+                    ID_DO_AMIGO.remove(id_usuario)
+                    print(erro)
+                    await message.channel.send(
+                        "Erro ao salvar o arquivo."
+                    )
+                    return
+
+                await message.channel.send(
+                    f"ID `{id_usuario}` adicionado com sucesso."
+                )
+
+                print(f"ID adicionado: {id_usuario}")
+                return
+
+            elif acao == "remove":
+
+                if id_usuario not in ID_DO_AMIGO:
+                    await message.channel.send(
+                        "Esse ID não está cadastrado."
+                    )
+                    return
+
+                ID_DO_AMIGO.remove(id_usuario)
+
+                try:
+                    salvar_amigos(ID_DO_AMIGO)
+                    
+                except OSError as erro:
+                    ID_DO_AMIGO.append(id_usuario)
+                    print(erro)
+                    await message.channel.send(
+                        "Erro ao salvar o arquivo."
+                    )
+                    return
+
+                await message.channel.send(
+                    f"ID `{id_usuario}` removido com sucesso."
+                )
+
+                print(f"ID removido: {id_usuario}")
+                return
+
+            else:
+                await message.channel.send(
+                    "Use apenas `add` ou `remove`."
+                )
+                return  
 
 
     if autor_id not in ID_DO_AMIGO:
