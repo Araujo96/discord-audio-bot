@@ -1,0 +1,34 @@
+.env
+.env.*
+!.env.example
+
+# Lista local de vítimas
+amigos.json
+
+
+*.mp3
+*.wav
+*.ogg
+*.flac
+
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+
+.venv/
+venv/
+env/
+
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
