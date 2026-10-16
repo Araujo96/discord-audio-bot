@@ -10,10 +10,10 @@ load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 
-ADMIN_ID = os.getenv("ADMIN_ID")
+ADMIN_ID = int(os.getenv("ADMIN_ID"))
 SENHA = os.getenv("SENHA")
 
-ARQUIVO_AUDIO = "se-o-bolsonaro.mp3"
+ARQUIVO_AUDIO = "audio.mp3"
 ARQUIVO_JSON = "amigos.json"
 
 IDS_PADRAO = [
